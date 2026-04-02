@@ -348,6 +348,21 @@ assert(pr6.isRegenerating === false,           'regen stops immediately on damag
 assert(pr6.timeSinceLastDamage === 0,          'regen timer reset on damage');
 assert(pr6.regenAccumulator    === 0,          'regen accumulator reset on damage');
 
+section('Health – level-up restores HP to max');
+const plv = new Player();
+plv.currentHp = 1;
+plv.gainExp(plv.expToNextLevel);  // triggers levelUp
+assert(plv.currentHp === plv.maxHp,            'levelUp restores currentHp to maxHp');
+
+section('Enemy – currentHp alias');
+const eal = new Enemy('TestAlias', 100, 10, 0, 0);
+assert(eal.currentHp === 100,                  'enemy currentHp alias returns hp');
+eal.currentHp = 60;
+assert(eal.hp === 60,                          'setting currentHp updates hp');
+assert(eal.currentHp === 60,                   'getter reflects new value');
+eal.reset();
+assert(eal.currentHp === eal.maxHp,            'enemy currentHp == maxHp after reset');
+
 // ─────────────────────────────────────────────
 //  Summary
 // ─────────────────────────────────────────────

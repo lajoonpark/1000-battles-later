@@ -34,6 +34,10 @@ class Enemy {
     this.dropTable    = dropTable;
   }
 
+  // Alias so enemy and player share the same currentHp interface
+  get currentHp()    { return this.hp; }
+  set currentHp(val) { this.hp = val; }
+
   isAlive() { return this.hp > 0; }
 
   reset() { this.hp = this.maxHp; }
@@ -102,6 +106,7 @@ class Player {
     this.level++;
     this.statPoints       += 3;
     this.expToNextLevel    = this._calcExpThreshold(this.level);
+    this.currentHp         = this.maxHp;  // restore to full HP on level-up
     this._addLog(`⬆ LEVEL UP! Now level ${this.level}. +3 stat points. Next level: ${this.expToNextLevel} EXP.`);
   }
 

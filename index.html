@@ -285,23 +285,26 @@ function refreshPlayerHpUI() {
   regenEl.textContent = player.isRegenerating ? '💚 Regenerating...' : '';
 }
 
-// ── Player death & revive ─────────────────────────────────────
+// ── Player death & return to selection ───────────────────────
 function handlePlayerDeath() {
+  battleOver = true;
   elBtnAttack.disabled = true;
-  onGameLog('💀 You were defeated! Reviving in 2 seconds...');
-  refreshPlayerHpUI();
+  elTimingResult.textContent = '💀 You Died!';
+  elTimingResult.style.color = '#ff4444';
+  onGameLog('💀 You Died! Returning to enemy selection...');
+  updateHealthBars();
   setTimeout(() => {
     player.currentHp           = player.maxHp;
     player.timeSinceLastDamage = 0;
     player.regenAccumulator    = 0;
     player.isRegenerating      = false;
-    onGameLog('✨ You have been revived!');
+    currentEnemy.reset();
     refreshPlayerHpUI();
-    if (!battleOver) elBtnAttack.disabled = false;
+    displayEnemyList();
   }, 2000);
 }
 
-
+// ── Combat log hook ───────────────────────────────────────────
 function onGameLog(msg, type) {
   const div = document.createElement('div');
   div.className = 'log-entry';
@@ -473,35 +476,78 @@ function endFight() {
   player.rollItemDrops(currentEnemy);
 
   onGameLog(`🏆 ${currentEnemy.name} defeated!`);
+  elTimingResult.textContent = '🏆 Victory!';
+  elTimingResult.style.color = '#f0c040';
   refreshPlayerUI();
-  refreshEnemyUI();
+  updateHealthBars();
 
-  // Auto-restart the fight after a short pause
+  // Return to enemy selection after a short pause
   setTimeout(() => {
     currentEnemy.reset();
-    battleOver  = false;
-    missPenalty = false;
-    elBtnAttack.disabled = false;
-    elTimingResult.textContent  = '';
-    elDamageDisplay.textContent = '';
-    refreshEnemyUI();
-    onGameLog(`--- ${currentEnemy.name} respawned ---`);
+    displayEnemyList();
   }, 1500);
 }
 
-// ── Attack button ─────────────────────────────────────────────
-elBtnAttack.addEventListener('click', () => {
+// ── Combat functions ──────────────────────────────────────────
+
+// Apply ±10% random variation to any raw damage value
+function applyVariation(amount) {
+  const factor = 0.9 + Math.random() * 0.2; // 0.90 – 1.10
+  return Math.max(1, Math.round(amount * factor));
+}
+
+// Universal damage dealer – works for player or any enemy target
+function takeDamage(target, amount) {
+  const actual = applyVariation(amount);
+  if (target === player) {
+    player.takeDamage(actual);
+  } else {
+    target.currentHp = Math.max(0, target.currentHp - actual);
+    onGameLog(`${target.name} takes ${actual} damage. (${target.currentHp}/${target.maxHp} HP)`);
+  }
+  updateHealthBars();
+  return actual;
+}
+
+// Update both health bars in one call
+function updateHealthBars() {
+  refreshPlayerHpUI();
+  refreshEnemyUI();
+}
+
+// Check whether either combatant has been defeated – returns true if battle ended
+function checkBattleEnd() {
+  if (!currentEnemy.isAlive()) {
+    endFight();
+    return true;
+  }
+  if (!player.isAlive()) {
+    handlePlayerDeath();
+    return true;
+  }
+  return false;
+}
+
+// Enemy retaliates against the player
+function enemyAttack() {
+  if (!currentEnemy.isAlive() || battleOver) return;
+  const rawDamage = Math.max(1, currentEnemy.damage - Math.floor(player.stats.vitality * 0.5));
+  takeDamage(player, rawDamage);
+  checkBattleEnd();
+}
+
+// Player attacks the current enemy (called on Attack button press)
+function playerAttack() {
   if (battleOver || missPenalty) return;
 
   const result = timingBar.attackEnemyWithTiming(player, currentEnemy);
   refreshPlayerUI();
-  refreshEnemyUI();
+  updateHealthBars();
 
   // Show damage feedback
   if (result.quality === 'miss') {
     elDamageDisplay.textContent = '0 damage';
     elDamageDisplay.style.color = '#ff6666';
-    // Miss penalty: brief delay before next attack
     missPenalty = true;
     elBtnAttack.disabled = true;
     setTimeout(() => {
@@ -514,19 +560,16 @@ elBtnAttack.addEventListener('click', () => {
     elDamageDisplay.style.color = dmgColors[result.quality] || '#ffffff';
   }
 
-  if (!currentEnemy.isAlive()) {
-    endFight();
-    return;
-  }
+  if (checkBattleEnd()) return;
 
-  // Enemy counterattack
-  const dmgTaken = Math.max(1, currentEnemy.damage - Math.floor(player.stats.vitality * 0.5));
-  player.takeDamage(dmgTaken);
-  refreshPlayerHpUI();
-  if (!player.isAlive()) {
-    handlePlayerDeath();
-  }
-});
+  // Small delay before enemy strikes back (better visual feedback)
+  setTimeout(() => {
+    if (!battleOver) enemyAttack();
+  }, 300);
+}
+
+// ── Attack button ─────────────────────────────────────────────
+elBtnAttack.addEventListener('click', () => playerAttack());
 
 // Keyboard support for timing bar
 document.getElementById('timing-bar-wrap').addEventListener('keydown', (e) => {
