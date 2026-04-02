@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LUAKBS – Level Up to Kill Bosses</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<h1>⚔ LUAKBS – Level Up to Kill Bosses</h1>
+
+<div id="game-container">
+
+  <!-- ── Left: Player Stats ── -->
+  <div id="stats-panel" class="panel">
+    <h2>Player</h2>
+
+    <div class="stat-row">
+      <span id="player-name">Hero</span>
+      <span>Lv. <span id="player-level">1</span></span>
+    </div>
+
+    <div id="exp-bar-wrap"><div id="exp-bar"></div></div>
+    <div id="exp-label">EXP: 0 / 100</div>
+
+    <div class="stat-row" style="margin-top:10px">
+      <span>Strength</span>
+      <span id="stat-strength">5</span>
+      <button class="stat-alloc-btn" data-stat="strength">+</button>
+    </div>
+    <div class="stat-row">
+      <span>Vitality</span>
+      <span id="stat-vitality">5</span>
+      <button class="stat-alloc-btn" data-stat="vitality">+</button>
+    </div>
+    <div class="stat-row">
+      <span>Dexterity</span>
+      <span id="stat-dexterity">5</span>
+      <button class="stat-alloc-btn" data-stat="dexterity">+</button>
+    </div>
+    <div class="stat-row">
+      <span>Luck</span>
+      <span id="stat-luck">5</span>
+      <button class="stat-alloc-btn" data-stat="luck">+</button>
+    </div>
+
+    <div id="stat-points-row">Stat Points: <strong id="stat-points">0</strong></div>
+
+    <div id="currency-row">
+      <span class="gold">🪙 <span id="gold">0</span></span>
+      <span class="gems">💎 <span id="gems">0</span></span>
+    </div>
+
+    <div id="weapon-display">🗡 Rusty Sword (common)</div>
+  </div>
+
+  <!-- ── Right: Enemy & Combat ── -->
+  <div id="enemy-panel" class="panel">
+    <h2>Combat</h2>
+
+    <div id="enemy-info">
+      <div id="enemy-name">Slime</div>
+      <div id="enemy-hp-label">HP: 30 / 30</div>
+    </div>
+
+    <div id="enemy-hp-bar-wrap">
+      <div id="enemy-hp-bar"></div>
+    </div>
+
+    <!-- Timing Bar -->
+    <div id="timing-section">
+      <div
+        id="timing-bar-wrap"
+        title="Click to attack!"
+        role="button"
+        aria-label="Attack timing bar – click to attack"
+        tabindex="0"
+      >
+        <div id="hit-zone-bad"></div>
+        <div id="hit-zone-good"></div>
+        <div id="hit-zone-perfect"></div>
+        <div id="marker"></div>
+      </div>
+      <div id="timing-labels">
+        <span>0</span><span>Miss</span><span>Hit Zone</span><span>Miss</span><span>100</span>
+      </div>
+      <div id="timing-result"></div>
+    </div>
+
+    <button id="btn-attack" class="btn">⚔ Attack!</button>
+    <button id="btn-next-enemy" class="btn" style="display:none">▶ Next Enemy</button>
+  </div>
+
+  <!-- ── Weapon Shop (full width) ── -->
+  <div id="shop-panel" class="panel">
+    <h2>⚒ Weapons (click to equip)</h2>
+    <div id="weapon-list"></div>
+  </div>
+
+  <!-- ── Combat Log (full width) ── -->
+  <div id="log-panel" class="panel">
+    <h2>📜 Combat Log</h2>
+    <div id="log-box"></div>
+  </div>
+
+</div><!-- /game-container -->
+
+<script src="game.js"></script>
+<script src="timing.js"></script>
+<script>
+// ============================================================
+//  UI Controller
+// ============================================================
+
+// ── Game state ──────────────────────────────────────────────
+const player  = new Player('Hero');
+let enemyIndex = 0;
+let currentEnemy = null;
+let battleOver   = false;
+
+// ── DOM refs ─────────────────────────────────────────────────
+const elLevel      = document.getElementById('player-level');
+const elExpBar     = document.getElementById('exp-bar');
+const elExpLabel   = document.getElementById('exp-label');
+const elStatPoints = document.getElementById('stat-points');
+const elGold       = document.getElementById('gold');
+const elGems       = document.getElementById('gems');
+const elWeaponDisp = document.getElementById('weapon-display');
+
+const elEnemyName  = document.getElementById('enemy-name');
+const elEnemyHpLbl = document.getElementById('enemy-hp-label');
+const elEnemyHpBar = document.getElementById('enemy-hp-bar');
+
+const elTimingResult = document.getElementById('timing-result');
+const elBtnAttack    = document.getElementById('btn-attack');
+const elBtnNext      = document.getElementById('btn-next-enemy');
+
+const elLogBox     = document.getElementById('log-box');
+const elMarker     = document.getElementById('marker');
+
+// ── Timing bar setup ─────────────────────────────────────────
+const timingBar = new TimingBar({ speed: 50 });
+
+timingBar.onTick = (pos) => {
+  elMarker.style.left = pos + '%';
+};
+
+timingBar.onHit = (result) => {
+  const colors = { perfect: '#44ccff', good: '#66ff66', bad: '#ffdd44', miss: '#ff6666' };
+  elTimingResult.textContent  = result.label;
+  elTimingResult.style.color  = colors[result.quality];
+};
+
+// ── Initialise hit-zone visuals ──────────────────────────────
+(function initHitZones() {
+  const tb     = timingBar;
+  const wrapW  = 100; // percentage-based
+
+  document.getElementById('hit-zone-bad').style.left  = tb.hitZoneMin + '%';
+  document.getElementById('hit-zone-bad').style.width =
+    (tb.hitZoneMax - tb.hitZoneMin) + '%';
+
+  const gMin = (tb.hitZoneMin + tb.hitZoneMax) / 2 - tb.goodRadius;
+  const gMax = (tb.hitZoneMin + tb.hitZoneMax) / 2 + tb.goodRadius;
+  document.getElementById('hit-zone-good').style.left  = gMin + '%';
+  document.getElementById('hit-zone-good').style.width = (gMax - gMin) + '%';
+
+  const pMin = (tb.hitZoneMin + tb.hitZoneMax) / 2 - tb.perfectRadius;
+  const pMax = (tb.hitZoneMin + tb.hitZoneMax) / 2 + tb.perfectRadius;
+  document.getElementById('hit-zone-perfect').style.left  = pMin + '%';
+  document.getElementById('hit-zone-perfect').style.width = (pMax - pMin) + '%';
+})();
+
+// ── UI refresh helpers ────────────────────────────────────────
+function refreshPlayerUI() {
+  elLevel.textContent      = player.level;
+  const pct = Math.min(100, Math.round(player.exp / player.expToNextLevel * 100));
+  elExpBar.style.width     = pct + '%';
+  elExpLabel.textContent   = `EXP: ${player.exp} / ${player.expToNextLevel}`;
+  elStatPoints.textContent = player.statPoints;
+  elGold.textContent       = player.gold;
+  elGems.textContent       = player.gems;
+  elWeaponDisp.textContent = `🗡 ${player.weapon.name} (${player.weapon.rarity})`;
+
+  // Update stat values
+  for (const stat of ['strength', 'vitality', 'dexterity', 'luck']) {
+    document.getElementById('stat-' + stat).textContent = player.stats[stat];
+  }
+
+  // Enable/disable allocate buttons
+  document.querySelectorAll('.stat-alloc-btn').forEach(btn => {
+    btn.disabled = player.statPoints <= 0;
+  });
+
+  // Adjust marker speed with level
+  timingBar.setSpeedForLevel(player.level);
+}
+
+function refreshEnemyUI() {
+  if (!currentEnemy) return;
+  elEnemyName.textContent  = currentEnemy.name;
+  elEnemyHpLbl.textContent = `HP: ${Math.max(0, currentEnemy.hp)} / ${currentEnemy.maxHp}`;
+  const hpPct = Math.max(0, currentEnemy.hp / currentEnemy.maxHp * 100);
+  elEnemyHpBar.style.width = hpPct + '%';
+  if (hpPct < 25) elEnemyHpBar.style.background = 'linear-gradient(90deg,#881111,#cc2222)';
+  else if (hpPct < 50) elEnemyHpBar.style.background = 'linear-gradient(90deg,#994400,#cc7700)';
+  else elEnemyHpBar.style.background = 'linear-gradient(90deg,#cc3333,#ff6666)';
+}
+
+// ── Combat log hook ───────────────────────────────────────────
+function onGameLog(msg) {
+  const div = document.createElement('div');
+  div.className = 'log-entry';
+  if (msg.includes('LEVEL UP'))   div.classList.add('level-up');
+  else if (msg.includes('CRIT'))  div.classList.add('crit');
+  else if (msg.includes('💎') || msg.includes('gold')) div.classList.add('highlight');
+  div.textContent = msg;
+  elLogBox.appendChild(div);
+  elLogBox.scrollTop = elLogBox.scrollHeight;
+}
+
+// ── Weapon shop ───────────────────────────────────────────────
+function buildWeaponShop() {
+  const list = document.getElementById('weapon-list');
+  list.innerHTML = '';
+  WEAPONS.forEach((w, i) => {
+    const card = document.createElement('div');
+    card.className = 'weapon-card' + (player.weapon === w ? ' equipped' : '');
+    card.innerHTML =
+      `<div class="rarity ${w.rarity}">${w.rarity}</div>` +
+      `<div>${w.name}</div>` +
+      `<div style="color:#888;font-size:0.78rem">${w.baseDamage} base dmg</div>`;
+    card.addEventListener('click', () => {
+      player.equipWeapon(w);
+      buildWeaponShop();
+      refreshPlayerUI();
+    });
+    list.appendChild(card);
+  });
+}
+
+// ── Load a new enemy ─────────────────────────────────────────
+function loadEnemy(index) {
+  currentEnemy = ENEMIES[index % ENEMIES.length];
+  currentEnemy.reset();
+  battleOver = false;
+  elBtnAttack.disabled = false;
+  elBtnNext.style.display = 'none';
+  refreshEnemyUI();
+  onGameLog(`--- New enemy: ${currentEnemy.name} ---`);
+}
+
+// ── Attack button ─────────────────────────────────────────────
+elBtnAttack.addEventListener('click', () => {
+  if (battleOver) return;
+
+  // Timing attack
+  const result = timingBar.attackEnemyWithTiming(player, currentEnemy);
+  refreshPlayerUI();
+  refreshEnemyUI();
+
+  if (!currentEnemy.isAlive()) {
+    // Enemy defeated
+    battleOver = true;
+    elBtnAttack.disabled = true;
+    elBtnNext.style.display = 'block';
+
+    // Collect rewards
+    player.gainExp(currentEnemy.expReward);
+    player.gold += currentEnemy.goldReward;
+    onGameLog(`+${currentEnemy.goldReward} gold! Total: ${player.gold}`);
+
+    const gemChance = Math.min(
+      currentEnemy.gemDropChance + player.stats.luck * 0.005, 0.9
+    );
+    if (Math.random() < gemChance) {
+      player.gems++;
+      onGameLog(`💎 Gem dropped! Total gems: ${player.gems}`);
+    }
+
+    onGameLog(`🏆 ${currentEnemy.name} defeated!`);
+    refreshPlayerUI();
+    refreshEnemyUI();
+  }
+});
+
+// Keyboard support for timing bar
+document.getElementById('timing-bar-wrap').addEventListener('keydown', (e) => {
+  if (e.key === ' ' || e.key === 'Enter') {
+    e.preventDefault();
+    elBtnAttack.click();
+  }
+});
+
+// ── Next enemy button ─────────────────────────────────────────
+elBtnNext.addEventListener('click', () => {
+  enemyIndex++;
+  loadEnemy(enemyIndex);
+});
+
+// ── Stat allocation buttons ───────────────────────────────────
+document.querySelectorAll('.stat-alloc-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    player.allocateStat(btn.dataset.stat);
+    refreshPlayerUI();
+  });
+});
+
+// ── Boot ─────────────────────────────────────────────────────
+buildWeaponShop();
+loadEnemy(0);
+refreshPlayerUI();
+timingBar.start();
+</script>
+
+</body>
+</html>

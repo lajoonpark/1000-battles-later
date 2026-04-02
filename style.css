@@ -1,0 +1,293 @@
+/* ============================================================
+   LUAKBS – Level Up to Kill Bosses
+   style.css
+   ============================================================ */
+
+/* ── Reset & base ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #0d0d1a;
+  color: #e8e0d0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+}
+
+h1 {
+  font-size: 2rem;
+  color: #f0c040;
+  text-shadow: 0 0 12px #f0c04066;
+  margin-bottom: 16px;
+  letter-spacing: 2px;
+}
+
+/* ── Layout ── */
+#game-container {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 16px;
+  width: 100%;
+  max-width: 900px;
+}
+
+/* ── Panels ── */
+.panel {
+  background: #14142a;
+  border: 1px solid #2e2e5e;
+  border-radius: 10px;
+  padding: 14px;
+}
+
+.panel h2 {
+  font-size: 1rem;
+  color: #a0c0ff;
+  border-bottom: 1px solid #2e2e5e;
+  padding-bottom: 6px;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* ── Player stats ── */
+#stats-panel .stat-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.88rem;
+  margin: 4px 0;
+}
+
+#stats-panel .stat-row span:last-child {
+  color: #f0c040;
+  font-weight: bold;
+}
+
+#stat-points-row {
+  margin-top: 10px;
+  font-size: 0.85rem;
+  color: #88ffaa;
+}
+
+.stat-alloc-btn {
+  background: #2a2a5a;
+  border: 1px solid #4444aa;
+  color: #a0c0ff;
+  border-radius: 4px;
+  padding: 2px 8px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  margin-left: 6px;
+}
+.stat-alloc-btn:hover { background: #3a3a8a; }
+.stat-alloc-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+/* ── Currency ── */
+#currency-row {
+  font-size: 0.88rem;
+  margin-top: 6px;
+  display: flex;
+  gap: 16px;
+}
+#currency-row .gold { color: #f0c040; }
+#currency-row .gems  { color: #88eeff; }
+
+/* ── Weapon row ── */
+#weapon-display {
+  font-size: 0.85rem;
+  margin-top: 8px;
+  color: #c0a0ff;
+}
+
+/* ── EXP bar ── */
+#exp-bar-wrap {
+  background: #1a1a3a;
+  border-radius: 6px;
+  height: 12px;
+  overflow: hidden;
+  margin: 8px 0 4px;
+  border: 1px solid #2e2e5e;
+}
+#exp-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #6040f0, #a060ff);
+  transition: width 0.4s ease;
+  width: 0%;
+}
+#exp-label { font-size: 0.78rem; color: #8888cc; }
+
+/* ── Enemy area ── */
+#enemy-panel { grid-column: 2; }
+
+#enemy-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+#enemy-name { font-size: 1.2rem; color: #ff8888; font-weight: bold; }
+#enemy-hp-label { font-size: 0.85rem; color: #aaa; }
+
+#enemy-hp-bar-wrap {
+  background: #1a1a2a;
+  border-radius: 6px;
+  height: 16px;
+  overflow: hidden;
+  margin-bottom: 14px;
+  border: 1px solid #3a2a2a;
+}
+#enemy-hp-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #cc3333, #ff6666);
+  transition: width 0.3s ease;
+  width: 100%;
+}
+
+/* ── Timing Bar ── */
+#timing-section { margin-bottom: 14px; }
+
+#timing-bar-wrap {
+  position: relative;
+  height: 36px;
+  background: #1a1a3a;
+  border-radius: 8px;
+  border: 1px solid #3a3a6a;
+  overflow: hidden;
+  cursor: pointer;
+  user-select: none;
+}
+
+/* hit zone shading */
+#hit-zone-bad {
+  position: absolute;
+  top: 0; bottom: 0;
+  background: rgba(255, 220, 80, 0.18);
+}
+#hit-zone-good {
+  position: absolute;
+  top: 0; bottom: 0;
+  background: rgba(80, 220, 80, 0.22);
+}
+#hit-zone-perfect {
+  position: absolute;
+  top: 0; bottom: 0;
+  background: rgba(80, 180, 255, 0.35);
+}
+
+/* marker */
+#marker {
+  position: absolute;
+  top: 4px; bottom: 4px;
+  width: 6px;
+  background: #ffffff;
+  border-radius: 3px;
+  box-shadow: 0 0 8px #fff;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+/* timing labels below bar */
+#timing-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.7rem;
+  color: #666;
+  padding: 2px 4px 0;
+}
+
+#timing-result {
+  text-align: center;
+  font-size: 1.1rem;
+  min-height: 1.5rem;
+  margin: 6px 0;
+  font-weight: bold;
+  transition: color 0.2s;
+}
+
+/* ── Buttons ── */
+.btn {
+  display: inline-block;
+  padding: 9px 20px;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+}
+.btn:active { transform: scale(0.97); }
+
+#btn-attack {
+  background: linear-gradient(135deg, #cc3333, #ff5555);
+  color: #fff;
+  width: 100%;
+  margin-bottom: 8px;
+}
+#btn-attack:hover { background: linear-gradient(135deg, #e04444, #ff7777); }
+#btn-attack:disabled { opacity: 0.4; cursor: not-allowed; }
+
+#btn-next-enemy {
+  background: linear-gradient(135deg, #336699, #5599cc);
+  color: #fff;
+  width: 100%;
+}
+#btn-next-enemy:hover { background: linear-gradient(135deg, #4477aa, #66aadd); }
+
+/* ── Weapon shop ── */
+#shop-panel { grid-column: 1 / -1; }
+
+#weapon-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.weapon-card {
+  background: #1e1e3e;
+  border: 1px solid #3a3a7a;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.weapon-card:hover         { background: #2a2a5a; border-color: #6666bb; }
+.weapon-card.equipped      { border-color: #f0c040; background: #2a2800; }
+.weapon-card .rarity       { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; }
+.weapon-card .rarity.common     { color: #aaaaaa; }
+.weapon-card .rarity.uncommon   { color: #66cc44; }
+.weapon-card .rarity.rare       { color: #4499ff; }
+.weapon-card .rarity.epic       { color: #cc66ff; }
+.weapon-card .rarity.legendary  { color: #ff9900; }
+
+/* ── Combat log ── */
+#log-panel { grid-column: 1 / -1; }
+
+#log-box {
+  background: #0a0a18;
+  border: 1px solid #2e2e5e;
+  border-radius: 6px;
+  height: 180px;
+  overflow-y: auto;
+  padding: 8px 10px;
+  font-size: 0.8rem;
+  font-family: 'Courier New', Courier, monospace;
+  color: #a0a8c0;
+}
+
+#log-box .log-entry { margin: 2px 0; }
+#log-box .log-entry.highlight { color: #f0c040; }
+#log-box .log-entry.level-up  { color: #88ffaa; font-weight: bold; }
+#log-box .log-entry.crit      { color: #ff6666; font-weight: bold; }
+
+/* ── Responsive ── */
+@media (max-width: 640px) {
+  #game-container { grid-template-columns: 1fr; }
+  #enemy-panel    { grid-column: 1; }
+  #shop-panel     { grid-column: 1; }
+  #log-panel      { grid-column: 1; }
+}
