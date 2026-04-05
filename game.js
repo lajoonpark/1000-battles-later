@@ -1,5 +1,5 @@
 // ============================================================
-//  LUAKBS – Level Up to Kill Bosses
+//  1000 Battles Later
 //  game.js  –  Core RPG classes and combat logic
 // ============================================================
 
@@ -569,14 +569,18 @@ class Companion {
   constructor(name = 'Familiar', emoji = '🦊') {
     this.name           = name;
     this.emoji          = emoji;
+    this.level          = 0;    // 0 = locked; purchase to unlock at level 1
     this.attackInterval = 3.5;  // seconds between auto-attacks
     this._attackTimer   = 0;
   }
 
-  // Damage scales with the player's current level (roughly 25–30% of
-  // a level-1 player's base damage, growing steadily as the player levels).
-  attackDamage(playerLevel) {
-    return Math.max(1, Math.floor(playerLevel * 2 + 3));
+  // Returns true if the familiar has been purchased/unlocked.
+  get isUnlocked() { return this.level > 0; }
+
+  // Damage scales with the companion's own level (roughly 25–30% of
+  // a level-1 player's base damage, growing steadily as the familiar levels).
+  attackDamage() {
+    return Math.max(1, Math.floor(this.level * 2 + 3));
   }
 
   // Advance the internal timer; returns true when it is time to attack.

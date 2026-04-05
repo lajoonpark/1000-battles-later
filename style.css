@@ -1341,3 +1341,43 @@ h1 {
   flex-wrap: wrap;
   justify-content: center;
 }
+
+/* ── Upgrade cards ──────────────────────────────────────────── */
+.upgrade-card {
+  background: #1e1e3e;
+  border: 1px solid #3a3a7a;
+  border-radius: 10px;
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 380px;
+}
+
+.upgrade-card.upgrade-owned {
+  border-color: #44aa66;
+  opacity: 0.85;
+}
+
+.upgrade-icon {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.upgrade-name {
+  font-weight: bold;
+  font-size: 1rem;
+  color: #ddd;
+}
+
+.upgrade-desc {
+  font-size: 0.82rem;
+  color: #aaa;
+}
+
+.upgrade-cost {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
