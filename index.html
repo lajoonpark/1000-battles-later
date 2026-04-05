@@ -1126,18 +1126,18 @@ document.getElementById('enemy-tier-filter').addEventListener('click', (e) => {
 });
 
 // ── Upgrades tab ──────────────────────────────────────────────
-const FAMILIAR_COST_GOLD  = 10000;
-const FAMILIAR_COST_GEMS  = 500;
+const FAMILIAR_COST_GOLD  = 7500;
+const FAMILIAR_COST_GEMS  = 15;
 const MERCHANT_COST_GOLD  = 500;
 const MERCHANT_COST_GEMS  = 1;
 
 let merchantUnlocked = false;
 
 const MERCHANT_ITEMS = [
-  { id: 'Race Reroll', name: 'Race Reroll', emoji: '🎲', desc: 'Reroll your race for a new set of stat multipliers.', goldCost: 500 },
+  { id: 'Race Reroll', name: 'Race Reroll', emoji: '🎲', desc: 'Reroll your race for a new set of stat multipliers.', goldCost: 750 },
   { id: 'Slime Gel',   name: 'Slime Gel',   emoji: '🟢', desc: 'A gooey substance used in crafting.',                goldCost: 10  },
-  { id: 'Iron Ore',    name: 'Iron Ore',    emoji: '🪨', desc: 'Basic crafting material.',                           goldCost: 15  },
-  { id: 'Wood',        name: 'Wood',        emoji: '🪵', desc: 'Basic crafting material.',                           goldCost: 8   },
+  { id: 'Iron Ore',    name: 'Iron Ore',    emoji: '🪨', desc: 'Basic crafting material.',                           goldCost: 100 },
+  { id: 'Wood',        name: 'Wood',        emoji: '🪵', desc: 'Basic crafting material.',                           goldCost: 50  },
 ];
 
 function renderUpgradesTab() {
