@@ -269,6 +269,14 @@
           </div>
         </div>
 
+        <div id="save-controls" style="margin-top:16px; border-top:1px solid #2e2e5e; padding-top:12px; display:flex; flex-direction:column; gap:8px;">
+          <div style="display:flex; gap:8px;">
+            <button id="btn-manual-save" class="btn" style="flex:1;" title="Save your progress now">💾 Save Game</button>
+            <button id="btn-delete-save" class="btn btn-delete-save" style="flex:1;" title="Delete saved game">🗑 Delete Save</button>
+          </div>
+          <div id="save-status" style="font-size:0.82rem; min-height:18px; text-align:center;"></div>
+        </div>
+
       </div>
 
     </div><!-- /character tab -->
@@ -1260,12 +1268,142 @@ function renderMerchantTab() {
   });
 }
 
+// ── Save / Load System ────────────────────────────────────────
+const SAVE_KEY                  = '1000_battles_save';
+const AUTO_SAVE_INTERVAL_MS     = 30000;
+const SAVE_STATUS_DURATION_MS   = 3000;
+let autoSaveTimer = null;
+
+function serializeGameState() {
+  return {
+    player: {
+      name:           player.name,
+      level:          player.level,
+      exp:            player.exp,
+      expToNextLevel: player.expToNextLevel,
+      stats:          { ...player.stats },
+      statPoints:     player.statPoints,
+      gold:           player.gold,
+      gems:           player.gems,
+      race:           player.race,
+      currentHp:      player.currentHp,
+      weapon:         { name: player.weapon.name, baseDamage: player.weapon.baseDamage, rarity: player.weapon.rarity },
+      inventory:      { ...player.inventory },
+      craftedWeapons: player.craftedWeapons.map(w => ({ name: w.name, baseDamage: w.baseDamage, rarity: w.rarity })),
+      deathCount:     player.deathCount,
+      deathLog:       JSON.parse(JSON.stringify(player.deathLog)),
+    },
+    companion: {
+      name:           companion.name,
+      emoji:          companion.emoji,
+      level:          companion.level,
+      exp:            companion.exp,
+      expToNextLevel: companion.expToNextLevel,
+    },
+    merchantUnlocked,
+    timestamp: Date.now(),
+  };
+}
+
+function saveGame() {
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify(serializeGameState()));
+    showSaveStatus('✓ Saved!', '#88dd88');
+    return true;
+  } catch (e) {
+    showSaveStatus('✗ Save failed!', '#ff8888');
+    return false;
+  }
+}
+
+function loadSave() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return false;
+    const s = JSON.parse(raw);
+    const pd = s.player;
+
+    player.name           = pd.name;
+    player.level          = pd.level;
+    player.exp            = pd.exp;
+    player.expToNextLevel = pd.expToNextLevel;
+    player.stats          = { ...pd.stats };
+    player.statPoints     = pd.statPoints;
+    player.gold           = pd.gold;
+    player.gems           = pd.gems;
+    player.race           = pd.race;
+    player.inventory      = { ...pd.inventory };
+    player.deathCount     = pd.deathCount;
+    player.deathLog       = JSON.parse(JSON.stringify(pd.deathLog));
+
+    player.craftedWeapons = pd.craftedWeapons.map(w => new Weapon(w.name, w.baseDamage, w.rarity));
+    const savedWeapon     = player.craftedWeapons.find(w => w.name === pd.weapon.name);
+    player.weapon         = savedWeapon || player.craftedWeapons[0] || new Weapon(pd.weapon.name, pd.weapon.baseDamage, pd.weapon.rarity);
+    player.currentHp      = Math.min(pd.currentHp, player.maxHp);
+
+    companion.name           = s.companion.name;
+    companion.emoji          = s.companion.emoji;
+    companion.level          = s.companion.level;
+    companion.exp            = s.companion.exp;
+    companion.expToNextLevel = s.companion.expToNextLevel;
+
+    merchantUnlocked = s.merchantUnlocked;
+    const tabBtn = document.getElementById('tab-btn-merchant');
+    if (tabBtn) tabBtn.style.display = merchantUnlocked ? '' : 'none';
+
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+function deleteSave() {
+  localStorage.removeItem(SAVE_KEY);
+  showSaveStatus('🗑 Save deleted.', '#ffcc66');
+}
+
+function hasSave() {
+  return localStorage.getItem(SAVE_KEY) !== null;
+}
+
+function showSaveStatus(msg, color) {
+  const el = document.getElementById('save-status');
+  if (!el) return;
+  el.textContent  = msg;
+  el.style.color  = color;
+  clearTimeout(el._hideTimer);
+  el._hideTimer = setTimeout(() => { el.textContent = ''; }, SAVE_STATUS_DURATION_MS);
+}
+
+function startAutoSave() {
+  if (autoSaveTimer) clearInterval(autoSaveTimer);
+  autoSaveTimer = setInterval(saveGame, AUTO_SAVE_INTERVAL_MS);
+}
+
+// ── Save/Load button events ────────────────────────────────────
+document.getElementById('btn-manual-save').addEventListener('click', saveGame);
+
+document.getElementById('btn-delete-save').addEventListener('click', () => {
+  if (!hasSave()) {
+    showSaveStatus('No save found.', '#aaaaaa');
+    return;
+  }
+  if (!confirm('Are you sure you want to delete your save? This cannot be undone!')) return;
+  deleteSave();
+});
+
 // ── Boot ─────────────────────────────────────────────────────
 buildWeaponShop();
+
+if (loadSave()) {
+  onGameLog('💾 Save loaded!');
+}
+
 refreshPlayerUI();
 renderUpgradesTab();
 timingBar.start();
 displayEnemyList();
+startAutoSave();
 </script>
 
 </body>
