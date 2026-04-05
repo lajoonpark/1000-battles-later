@@ -1495,6 +1495,8 @@ h1 {
 .rune-slot-empty    { color: #555577; font-size: 0.72rem; }
 .rune-slot-lock     { font-size: 1.4rem; line-height: 1; }
 .rune-slot-unlock-cost { font-size: 0.68rem; margin-top: 4px; }
+.rune-slot-unlock-cost.can-afford    { color: #4499ff; }
+.rune-slot-unlock-cost.cannot-afford { color: #aaaaaa; }
 
 .rune-unequip-btn {
   background: transparent;

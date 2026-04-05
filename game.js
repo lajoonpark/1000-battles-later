@@ -85,6 +85,11 @@ class Rune {
   }
 }
 
+// Luck bonus factor per point applied to rune drop chance
+const LUCK_RUNE_DROP_MODIFIER = 0.002;
+// Maximum rune drop chance regardless of luck (normal enemies are 1–8%)
+const MAX_RUNE_DROP_CHANCE = 0.15;
+
 // Predefined rune catalog (runeTier 0=common only, 1=up to uncommon, 2=up to rare, 3=epic)
 const RUNES = [
   new Rune('blood',       'Blood Rune',        '🩸', 'lifesteal',       0.02, 'common'),
@@ -428,8 +433,8 @@ class Player {
     if (!enemy.runeDropChance || enemy.runeDropChance <= 0) return null;
     // Luck adds up to the cap, but never reduces the base drop chance below itself.
     const runeChance = Math.min(
-      enemy.runeDropChance + this.stats.luck * 0.002,
-      Math.max(enemy.runeDropChance, 0.15),
+      enemy.runeDropChance + this.stats.luck * LUCK_RUNE_DROP_MODIFIER,
+      Math.max(enemy.runeDropChance, MAX_RUNE_DROP_CHANCE),
     );
     if (Math.random() >= runeChance) return null;
     const eligible = RUNES.filter(r => RARITY_ORDER.indexOf(r.rarity) <= enemy.runeTier);
@@ -803,5 +808,5 @@ class Companion {
 //  Export for Node.js (test runner) or browser
 // ─────────────────────────────────────────────
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { Player, Enemy, Weapon, Rune, Companion, ENEMIES, WEAPONS, CRAFTING_RECIPES, RACES, RACE_WEIGHTS, RACE_WEIGHTS_TOTAL, rollRandomRace, getRerollDropChance, RUNES, RARITY_ORDER };
+  module.exports = { Player, Enemy, Weapon, Rune, Companion, ENEMIES, WEAPONS, CRAFTING_RECIPES, RACES, RACE_WEIGHTS, RACE_WEIGHTS_TOTAL, rollRandomRace, getRerollDropChance, RUNES, RARITY_ORDER, LUCK_RUNE_DROP_MODIFIER, MAX_RUNE_DROP_CHANCE };
 }

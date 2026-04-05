@@ -1363,9 +1363,10 @@ function renderRuneSlots() {
     if (!isUnlocked) {
       const cost = RUNE_SLOT_UNLOCK_COSTS[i];
       const canAfford = player.gems >= cost;
+      slot.setAttribute('aria-label', `Locked rune slot ${i + 1}. Costs ${cost} gems to unlock.`);
       slot.innerHTML =
-        `<div class="rune-slot-lock">🔒</div>` +
-        `<div class="rune-slot-unlock-cost rarity-${canAfford ? 'rare' : 'common'}">` +
+        `<div class="rune-slot-lock" aria-hidden="true">🔒</div>` +
+        `<div class="rune-slot-unlock-cost ${canAfford ? 'can-afford' : 'cannot-afford'}" aria-label="Costs ${cost} gems to unlock">` +
           `${cost} 💎 to unlock` +
         `</div>`;
       slot.addEventListener('click', () => {
