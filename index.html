@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>LUAKBS – Level Up to Kill Bosses</title>
+  <title>1000 Battles Later</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -11,7 +11,7 @@
 </head>
 <body>
 
-<h1>⚔ LUAKBS – Level Up to Kill Bosses</h1>
+<h1>⚔ 1000 Battles Later</h1>
 
 <div id="game-container">
 
@@ -140,6 +140,7 @@
       <button class="tab-btn active" data-tab="enemies" role="tab">🗺 Enemies</button>
       <button class="tab-btn" data-tab="inventory" role="tab">🎒 Inventory<span class="tab-badge" id="tab-badge-inventory"></span></button>
       <button class="tab-btn" data-tab="character" role="tab">📊 Character</button>
+      <button class="tab-btn" data-tab="upgrades" role="tab">⬆ Upgrades</button>
     </nav>
 
     <!-- ── Combat Tab ── -->
@@ -268,6 +269,16 @@
 
     </div><!-- /character tab -->
 
+    <!-- ── Upgrades Tab ── -->
+    <div class="tab-panel" data-tab="upgrades" role="tabpanel">
+
+      <div id="upgrades-panel" class="panel">
+        <h2>⬆ Upgrades</h2>
+        <div id="familiar-upgrade-card"></div>
+      </div>
+
+    </div><!-- /upgrades tab -->
+
   </div><!-- /right-column -->
 
 </div><!-- /game-container -->
@@ -337,7 +348,13 @@ function switchTab(tabName) {
     panel.classList.toggle('active', panel.dataset.tab === tabName);
   });
   if (tabName === 'inventory') clearTabBadge('inventory');
+  if (tabName === 'upgrades') renderUpgradesTab();
 }
+
+// ── Tab button click listeners ────────────────────────────────
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+});
 
 function showTabBadge(tabName) {
   const badge = document.getElementById(`tab-badge-${tabName}`);
@@ -376,7 +393,7 @@ timingBar.onTick = (pos, delta) => {
     player.updateRegen(delta);
     refreshPlayerHpUI();
     if (!battleOver && currentEnemy && currentEnemy.isAlive()) {
-      if (companion.tick(delta) && !battleOver) {
+      if (companion.isUnlocked && companion.tick(delta) && !battleOver) {
         companionAttack();
       }
     }
@@ -796,8 +813,9 @@ function enemyAttack() {
 
 // Companion auto-attacks the current enemy (called by the RAF tick)
 function companionAttack() {
+  if (!companion.isUnlocked) return;
   if (!currentEnemy || !currentEnemy.isAlive() || battleOver) return;
-  const rawDmg = companion.attackDamage(player.level);
+  const rawDmg = companion.attackDamage();
   const actual = applyVariation(rawDmg);
   currentEnemy.currentHp = Math.max(0, currentEnemy.currentHp - actual);
   onGameLog(`🦊 ${companion.name} strikes ${currentEnemy.name} for ${actual} damage! (${currentEnemy.currentHp}/${currentEnemy.maxHp} HP)`);
@@ -812,9 +830,17 @@ function companionAttack() {
   checkBattleEnd();
 }
 
-// Keep the companion level label in sync with the player's level
+// Keep the companion level label in sync with the companion's own level
 function refreshCompanionUI() {
-  document.getElementById('companion-level-label').textContent = 'Lv. ' + player.level;
+  const lvlLabel = document.getElementById('companion-level-label');
+  const sprite   = document.getElementById('companion-sprite');
+  if (companion.isUnlocked) {
+    lvlLabel.textContent  = 'Lv. ' + companion.level;
+    sprite.style.opacity  = '1';
+  } else {
+    lvlLabel.textContent  = 'Locked';
+    sprite.style.opacity  = '0.3';
+  }
 }
 
 // Player attacks the current enemy (called on Attack button press)
@@ -1073,9 +1099,55 @@ document.getElementById('enemy-tier-filter').addEventListener('click', (e) => {
   });
 });
 
+// ── Upgrades tab ──────────────────────────────────────────────
+const FAMILIAR_COST_GOLD = 10000;
+const FAMILIAR_COST_GEMS  = 500;
+
+function renderUpgradesTab() {
+  const card = document.getElementById('familiar-upgrade-card');
+  if (!card) return;
+
+  if (companion.isUnlocked) {
+    card.innerHTML =
+      `<div class="upgrade-card upgrade-owned">` +
+        `<div class="upgrade-icon">🦊</div>` +
+        `<div class="upgrade-name">Familiar</div>` +
+        `<div class="upgrade-desc">Your familiar fights alongside you! (Lv. ${companion.level})</div>` +
+      `</div>`;
+    return;
+  }
+
+  const enoughGold = player.gold >= FAMILIAR_COST_GOLD;
+  const enoughGems = player.gems  >= FAMILIAR_COST_GEMS;
+  const canAfford  = enoughGold && enoughGems;
+
+  card.innerHTML =
+    `<div class="upgrade-card">` +
+      `<div class="upgrade-icon">🦊</div>` +
+      `<div class="upgrade-name">Familiar</div>` +
+      `<div class="upgrade-desc">Unlock a loyal familiar that auto-attacks enemies every few seconds.</div>` +
+      `<div class="upgrade-cost">` +
+        `<span class="mat${enoughGold ? ' mat-ok' : ' mat-missing'}">🪙 ${player.gold} / ${FAMILIAR_COST_GOLD} gold</span>` +
+        `<span class="mat${enoughGems  ? ' mat-ok' : ' mat-missing'}">💎 ${player.gems}  / ${FAMILIAR_COST_GEMS} gems</span>` +
+      `</div>` +
+      `<button class="btn" id="btn-buy-familiar" ${canAfford ? '' : 'disabled'}>Purchase Familiar</button>` +
+    `</div>`;
+
+  document.getElementById('btn-buy-familiar').addEventListener('click', () => {
+    if (player.gold < FAMILIAR_COST_GOLD || player.gems < FAMILIAR_COST_GEMS) return;
+    player.gold -= FAMILIAR_COST_GOLD;
+    player.gems -= FAMILIAR_COST_GEMS;
+    companion.level = 1;
+    onGameLog('🦊 Familiar unlocked! Your familiar joins the fight!');
+    refreshPlayerUI();
+    renderUpgradesTab();
+  });
+}
+
 // ── Boot ─────────────────────────────────────────────────────
 buildWeaponShop();
 refreshPlayerUI();
+renderUpgradesTab();
 timingBar.start();
 displayEnemyList();
 </script>
