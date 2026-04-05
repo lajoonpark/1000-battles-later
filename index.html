@@ -141,6 +141,7 @@
       <button class="tab-btn" data-tab="inventory" role="tab">🎒 Inventory<span class="tab-badge" id="tab-badge-inventory"></span></button>
       <button class="tab-btn" data-tab="character" role="tab">📊 Character</button>
       <button class="tab-btn" data-tab="upgrades" role="tab">⬆ Upgrades</button>
+      <button class="tab-btn" data-tab="merchant" id="tab-btn-merchant" role="tab" style="display:none">🛒 Merchant</button>
     </nav>
 
     <!-- ── Combat Tab ── -->
@@ -275,9 +276,18 @@
       <div id="upgrades-panel" class="panel">
         <h2>⬆ Upgrades</h2>
         <div id="familiar-upgrade-card"></div>
+        <div id="merchant-upgrade-card"></div>
       </div>
 
     </div><!-- /upgrades tab -->
+
+    <!-- ── Merchant Tab ── -->
+    <div class="tab-panel" data-tab="merchant" role="tabpanel">
+      <div id="merchant-panel" class="panel">
+        <h2>🛒 Merchant</h2>
+        <div id="merchant-list"></div>
+      </div>
+    </div><!-- /merchant tab -->
 
   </div><!-- /right-column -->
 
@@ -349,6 +359,7 @@ function switchTab(tabName) {
   });
   if (tabName === 'inventory') clearTabBadge('inventory');
   if (tabName === 'upgrades') renderUpgradesTab();
+  if (tabName === 'merchant') renderMerchantTab();
 }
 
 // ── Tab button click listeners ────────────────────────────────
@@ -1100,8 +1111,19 @@ document.getElementById('enemy-tier-filter').addEventListener('click', (e) => {
 });
 
 // ── Upgrades tab ──────────────────────────────────────────────
-const FAMILIAR_COST_GOLD = 10000;
+const FAMILIAR_COST_GOLD  = 10000;
 const FAMILIAR_COST_GEMS  = 500;
+const MERCHANT_COST_GOLD  = 500;
+const MERCHANT_COST_GEMS  = 1;
+
+let merchantUnlocked = false;
+
+const MERCHANT_ITEMS = [
+  { id: 'Race Reroll', name: 'Race Reroll', emoji: '🎲', desc: 'Reroll your race for a new set of stat multipliers.', goldCost: 500 },
+  { id: 'Slime Gel',   name: 'Slime Gel',   emoji: '🟢', desc: 'A gooey substance used in crafting.',                goldCost: 10  },
+  { id: 'Iron Ore',    name: 'Iron Ore',    emoji: '🪨', desc: 'Basic crafting material.',                           goldCost: 15  },
+  { id: 'Wood',        name: 'Wood',        emoji: '🪵', desc: 'Basic crafting material.',                           goldCost: 8   },
+];
 
 function renderUpgradesTab() {
   const card = document.getElementById('familiar-upgrade-card');
@@ -1114,33 +1136,110 @@ function renderUpgradesTab() {
         `<div class="upgrade-name">Familiar</div>` +
         `<div class="upgrade-desc">Your familiar fights alongside you! (Lv. ${companion.level})</div>` +
       `</div>`;
+  } else {
+    const enoughGold = player.gold >= FAMILIAR_COST_GOLD;
+    const enoughGems = player.gems  >= FAMILIAR_COST_GEMS;
+    const canAfford  = enoughGold && enoughGems;
+
+    card.innerHTML =
+      `<div class="upgrade-card">` +
+        `<div class="upgrade-icon">🦊</div>` +
+        `<div class="upgrade-name">Familiar</div>` +
+        `<div class="upgrade-desc">Unlock a loyal familiar that auto-attacks enemies every few seconds.</div>` +
+        `<div class="upgrade-cost">` +
+          `<span class="mat${enoughGold ? ' mat-ok' : ' mat-missing'}">🪙 ${player.gold} / ${FAMILIAR_COST_GOLD} gold</span>` +
+          `<span class="mat${enoughGems  ? ' mat-ok' : ' mat-missing'}">💎 ${player.gems}  / ${FAMILIAR_COST_GEMS} gems</span>` +
+        `</div>` +
+        `<button class="btn" id="btn-buy-familiar" ${canAfford ? '' : 'disabled'}>Purchase Familiar</button>` +
+      `</div>`;
+
+    document.getElementById('btn-buy-familiar').addEventListener('click', () => {
+      if (player.gold < FAMILIAR_COST_GOLD || player.gems < FAMILIAR_COST_GEMS) return;
+      player.gold -= FAMILIAR_COST_GOLD;
+      player.gems -= FAMILIAR_COST_GEMS;
+      companion.level = 1;
+      onGameLog('🦊 Familiar unlocked! Your familiar joins the fight!');
+      refreshPlayerUI();
+      renderUpgradesTab();
+    });
+  }
+
+  const merchantCard = document.getElementById('merchant-upgrade-card');
+  if (!merchantCard) return;
+
+  if (merchantUnlocked) {
+    merchantCard.innerHTML =
+      `<div class="upgrade-card upgrade-owned">` +
+        `<div class="upgrade-icon">🛒</div>` +
+        `<div class="upgrade-name">Merchant</div>` +
+        `<div class="upgrade-desc">The merchant's shop is open! Visit the Merchant tab to buy items.</div>` +
+      `</div>`;
     return;
   }
 
-  const enoughGold = player.gold >= FAMILIAR_COST_GOLD;
-  const enoughGems = player.gems  >= FAMILIAR_COST_GEMS;
-  const canAfford  = enoughGold && enoughGems;
+  const enoughGoldM = player.gold >= MERCHANT_COST_GOLD;
+  const enoughGemsM = player.gems  >= MERCHANT_COST_GEMS;
+  const canAffordM  = enoughGoldM && enoughGemsM;
 
-  card.innerHTML =
+  merchantCard.innerHTML =
     `<div class="upgrade-card">` +
-      `<div class="upgrade-icon">🦊</div>` +
-      `<div class="upgrade-name">Familiar</div>` +
-      `<div class="upgrade-desc">Unlock a loyal familiar that auto-attacks enemies every few seconds.</div>` +
+      `<div class="upgrade-icon">🛒</div>` +
+      `<div class="upgrade-name">Merchant</div>` +
+      `<div class="upgrade-desc">Unlock a wandering merchant who sells useful items for gold.</div>` +
       `<div class="upgrade-cost">` +
-        `<span class="mat${enoughGold ? ' mat-ok' : ' mat-missing'}">🪙 ${player.gold} / ${FAMILIAR_COST_GOLD} gold</span>` +
-        `<span class="mat${enoughGems  ? ' mat-ok' : ' mat-missing'}">💎 ${player.gems}  / ${FAMILIAR_COST_GEMS} gems</span>` +
+        `<span class="mat${enoughGoldM ? ' mat-ok' : ' mat-missing'}">🪙 ${player.gold} / ${MERCHANT_COST_GOLD} gold</span>` +
+        `<span class="mat${enoughGemsM ? ' mat-ok' : ' mat-missing'}">💎 ${player.gems}  / ${MERCHANT_COST_GEMS} gems</span>` +
       `</div>` +
-      `<button class="btn" id="btn-buy-familiar" ${canAfford ? '' : 'disabled'}>Purchase Familiar</button>` +
+      `<button class="btn" id="btn-buy-merchant" ${canAffordM ? '' : 'disabled'}>Unlock Merchant</button>` +
     `</div>`;
 
-  document.getElementById('btn-buy-familiar').addEventListener('click', () => {
-    if (player.gold < FAMILIAR_COST_GOLD || player.gems < FAMILIAR_COST_GEMS) return;
-    player.gold -= FAMILIAR_COST_GOLD;
-    player.gems -= FAMILIAR_COST_GEMS;
-    companion.level = 1;
-    onGameLog('🦊 Familiar unlocked! Your familiar joins the fight!');
+  document.getElementById('btn-buy-merchant').addEventListener('click', () => {
+    if (player.gold < MERCHANT_COST_GOLD || player.gems < MERCHANT_COST_GEMS) return;
+    player.gold -= MERCHANT_COST_GOLD;
+    player.gems -= MERCHANT_COST_GEMS;
+    merchantUnlocked = true;
+    const tabBtn = document.getElementById('tab-btn-merchant');
+    if (tabBtn) tabBtn.style.display = '';
+    onGameLog('🛒 Merchant unlocked! Visit the Merchant tab to buy items.');
     refreshPlayerUI();
     renderUpgradesTab();
+  });
+}
+
+// ── Merchant tab ──────────────────────────────────────────────
+function renderMerchantTab() {
+  const list = document.getElementById('merchant-list');
+  if (!list) return;
+  list.innerHTML = '';
+
+  MERCHANT_ITEMS.forEach(item => {
+    const canAfford = player.gold >= item.goldCost;
+    const card = document.createElement('div');
+    card.className = 'merchant-item-card';
+    card.innerHTML =
+      `<div class="merchant-item-icon">${item.emoji}</div>` +
+      `<div class="merchant-item-info">` +
+        `<div class="merchant-item-name">${item.name}</div>` +
+        `<div class="merchant-item-desc">${item.desc}</div>` +
+      `</div>` +
+      `<div class="merchant-item-buy">` +
+        `<span class="mat${canAfford ? ' mat-ok' : ' mat-missing'}">🪙 ${item.goldCost}</span>` +
+        `<button class="btn btn-secondary merchant-buy-btn" data-item-id="${item.id}" ${canAfford ? '' : 'disabled'}>Buy</button>` +
+      `</div>`;
+    list.appendChild(card);
+  });
+
+  list.querySelectorAll('.merchant-buy-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const itemId = btn.dataset.itemId;
+      const item = MERCHANT_ITEMS.find(i => i.id === itemId);
+      if (!item || player.gold < item.goldCost) return;
+      player.gold -= item.goldCost;
+      player.addItemToInventory(item.id, 1);
+      onGameLog(`🛒 Purchased 1x ${item.name} for ${item.goldCost} gold.`);
+      refreshPlayerUI();
+      renderMerchantTab();
+    });
   });
 }
 
